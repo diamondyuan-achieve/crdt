@@ -38,28 +38,41 @@ class OrderTree {
       leftId,
       value,
     };
+    this.applyEvent(action);
     return action;
   }
 
   public applyEvent(event: Event): void {
     switch (event.type) {
       case Action.AddLeaf: {
-        const children = this.children.get(event.parentId);
+        const children = this.children.get(event.parentId) ?? [];
         let startIndex = 0;
         if (event.leftId !== null) {
           startIndex = children?.findIndex(
             (o) => o.toString() === event.leftId!.toString()
           )!;
         }
+        children?.splice(startIndex, 0, event.id);
+        this.value.set(event.id, event.value);
+        this.children.set(event.parentId, children);
       }
     }
   }
 
-  public print() {
-    const value = this.children.get(null)?.map((id) => {
-      return this.value.get(id);
+  private getChildrenNodes(parentId: null | Clock): any {
+    return this.children.get(parentId)?.map((id) => {
+      return {
+        value: this.value.get(id),
+        children: this.getChildrenNodes(id),
+      };
     });
-    console.log(value);
+  }
+
+  public buildTree() {
+    return {
+      value: this.clock.actorId,
+      children: this.getChildrenNodes(null),
+    };
   }
 }
 
@@ -72,3 +85,7 @@ const ob1 = tree2.addLeaf([0], "b");
 tree1.applyEvent(ob1);
 
 tree2.applyEvent(oa1);
+
+console.log(JSON.stringify(tree1.buildTree(), null, 2));
+console.log();
+console.log(JSON.stringify(tree2.buildTree(), null, 2));
