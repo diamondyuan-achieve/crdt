@@ -1,4 +1,4 @@
-import { Clock } from "./clock";
+import { Clock, Ordering } from "./clock";
 
 enum Action {
   AddLeaf,
@@ -52,6 +52,19 @@ class OrderTree {
             (o) => o.toString() === event.leftId!.toString()
           )!;
         }
+        while (true) {
+          const compareTo = children[startIndex];
+          if (!compareTo) {
+            break;
+          }
+          const ord = compareTo.compare(event.id);
+          if (ord === Ordering.Less) {
+            startIndex++;
+            continue;
+          } else {
+            break;
+          }
+        }
         children?.splice(startIndex, 0, event.id);
         this.value.set(event.id, event.value);
         this.children.set(event.parentId, children);
@@ -80,11 +93,15 @@ const tree1 = new OrderTree("root-a");
 const tree2 = new OrderTree("root-b");
 
 const oa1 = tree1.addLeaf([0], "a");
+const oa2 = tree1.addLeaf([0, 0], "a-a");
+const oa3 = tree1.addLeaf([0, 0], "a-b");
 const ob1 = tree2.addLeaf([0], "b");
 
 tree1.applyEvent(ob1);
 
 tree2.applyEvent(oa1);
+tree2.applyEvent(oa2);
+tree2.applyEvent(oa3);
 
 console.log(JSON.stringify(tree1.buildTree(), null, 2));
 console.log();
