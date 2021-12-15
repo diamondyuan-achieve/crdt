@@ -45,6 +45,7 @@ it("", () => {
   tree2.applyEvent(o1);
   tree2.applyEvent(o2);
   tree2.applyEvent(o3);
+
   tree1.applyEvent(tree2.addLeaf([0, 0], "a-a"));
   expect(treeToString(tree2.buildTree())).toEqual(
     `

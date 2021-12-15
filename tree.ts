@@ -3,6 +3,7 @@ import { Clock, Ordering } from "./clock";
 
 enum Action {
   AddLeaf,
+  Move,
 }
 
 interface AddLeaf {
@@ -13,7 +14,15 @@ interface AddLeaf {
   value: string;
 }
 
-type Event = AddLeaf;
+interface Move {
+  type: Action.Move;
+  from: Clock;
+  targetParent: Clock | null;
+  targetLeftId: Clock | null;
+  id: Clock;
+}
+
+type Event = AddLeaf | Move;
 
 export class OrderTree {
   private children: Map<Clock | null, Clock[]> = new Map<Clock, Clock[]>();
@@ -32,7 +41,7 @@ export class OrderTree {
     }
     const brother = this.children.get(parentId) ?? [];
     leftId = brother[paths[paths.length - 1]] ?? null;
-    const action = {
+    const action: AddLeaf = {
       type: Action.AddLeaf,
       id: this.clock.tick(),
       parentId,
@@ -42,6 +51,8 @@ export class OrderTree {
     this.applyEvent(action);
     return action;
   }
+
+  move(from: number[], to: number[]): void {}
 
   public applyEvent(event: Event): void {
     switch (event.type) {
