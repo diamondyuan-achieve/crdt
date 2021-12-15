@@ -1,3 +1,4 @@
+import { Tree, treeToString } from "./debug";
 import { Clock, Ordering } from "./clock";
 
 enum Action {
@@ -75,15 +76,15 @@ class OrderTree {
   private getChildrenNodes(parentId: null | Clock): any {
     return this.children.get(parentId)?.map((id) => {
       return {
-        value: this.value.get(id),
+        content: this.value.get(id),
         children: this.getChildrenNodes(id),
       };
     });
   }
 
-  public buildTree() {
+  public buildTree(): Tree {
     return {
-      value: this.clock.actorId,
+      content: this.clock.actorId,
       children: this.getChildrenNodes(null),
     };
   }
@@ -103,6 +104,6 @@ tree2.applyEvent(oa1);
 tree2.applyEvent(oa2);
 tree2.applyEvent(oa3);
 
-console.log(JSON.stringify(tree1.buildTree(), null, 2));
+console.log(treeToString(tree1.buildTree()));
 console.log();
-console.log(JSON.stringify(tree2.buildTree(), null, 2));
+console.log(treeToString(tree2.buildTree()));

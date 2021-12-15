@@ -29,7 +29,7 @@ export enum Ordering {
 }
 
 /** Implements a Lamport Clock */
-export class Clock<Id = String> {
+export class Clock<Id = string> {
   actorId: Id;
   counter: number;
 
