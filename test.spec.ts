@@ -18,6 +18,27 @@ root
 it("", () => {
   const tree1 = new OrderTree("root");
   const o1 = tree1.addLeaf([], "a");
+  const tree2 = new OrderTree("root-b");
+  const o2 = tree2.addLeaf([], "b");
+  const o3 = tree2.addLeaf([], "b-1");
+
+  tree1.applyEvent(o2);
+  tree1.applyEvent(o3);
+  tree2.applyEvent(o1);
+
+  expect(treeToString(tree1.buildTree())).toEqual(
+    `
+root
+├── b-1 - 0000000002:root-b
+├── b - 0000000001:root-b
+└── a - 0000000001:root
+`.trim()
+  );
+});
+
+it("", () => {
+  const tree1 = new OrderTree("root");
+  const o1 = tree1.addLeaf([], "a");
   const o2 = tree1.addLeaf([0], "b");
   const o3 = tree1.addLeaf([0], "c");
   // const o3 = tree1.addLeaf([0], "c");
