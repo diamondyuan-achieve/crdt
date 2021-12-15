@@ -1,0 +1,12 @@
+{
+  "name": "crdt",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:DiamondYuan/crdt.git",
+  "author": "DiamondYuan <admin@diamondyuan.com>",
+  "license": "MIT",
+  "dependencies": {
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.4"
+  }
+}
