@@ -15,7 +15,7 @@ interface AddLeaf {
 
 type Event = AddLeaf;
 
-class OrderTree {
+export class OrderTree {
   private children: Map<Clock | null, Clock[]> = new Map<Clock, Clock[]>();
   private value: Map<Clock | null, string> = new Map<Clock, string>();
   private clock: Clock;
@@ -52,6 +52,7 @@ class OrderTree {
           startIndex = children?.findIndex(
             (o) => o.toString() === event.leftId!.toString()
           )!;
+          startIndex = startIndex + 1;
         }
         while (true) {
           const compareTo = children[startIndex];
@@ -59,7 +60,7 @@ class OrderTree {
             break;
           }
           const ord = compareTo.compare(event.id);
-          if (ord === Ordering.Less) {
+          if (ord === Ordering.Greater) {
             startIndex++;
             continue;
           } else {
@@ -76,7 +77,7 @@ class OrderTree {
   private getChildrenNodes(parentId: null | Clock): any {
     return this.children.get(parentId)?.map((id) => {
       return {
-        content: this.value.get(id),
+        content: `${this.value.get(id)} - ${id.toString()}`,
         children: this.getChildrenNodes(id),
       };
     });
@@ -90,20 +91,24 @@ class OrderTree {
   }
 }
 
-const tree1 = new OrderTree("root-a");
-const tree2 = new OrderTree("root-b");
+// const tree1 = new OrderTree("root-a");
+// const tree2 = new OrderTree("root-b");
 
-const oa1 = tree1.addLeaf([0], "a");
-const oa2 = tree1.addLeaf([0, 0], "a-a");
-const oa3 = tree1.addLeaf([0, 0], "a-b");
-const ob1 = tree2.addLeaf([0], "b");
+// const oa1 = tree1.addLeaf([0], "a");
+// const oa2 = tree1.addLeaf([0, 0], "a-a");
+// const oa3 = tree1.addLeaf([0, 0], "a-b");
 
-tree1.applyEvent(ob1);
+// const ob1 = tree2.addLeaf([0], "b");
 
-tree2.applyEvent(oa1);
-tree2.applyEvent(oa2);
-tree2.applyEvent(oa3);
+// tree1.applyEvent(ob1);
 
-console.log(treeToString(tree1.buildTree()));
-console.log();
-console.log(treeToString(tree2.buildTree()));
+// tree2.applyEvent(oa1);
+// tree2.applyEvent(oa2);
+// tree2.applyEvent(oa3);
+
+// const ob2 = tree2.addLeaf([0], "c");
+// tree1.applyEvent(ob2);
+
+// console.log(treeToString(tree1.buildTree()));
+// console.log();
+// console.log(treeToString(tree2.buildTree()));
