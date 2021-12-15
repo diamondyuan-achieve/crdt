@@ -41,7 +41,6 @@ it("", () => {
   const o1 = tree1.addLeaf([], "a");
   const o2 = tree1.addLeaf([0], "b");
   const o3 = tree1.addLeaf([0], "c");
-  // const o3 = tree1.addLeaf([0], "c");
   const tree2 = new OrderTree("root-b");
   tree2.applyEvent(o1);
   tree2.applyEvent(o2);
