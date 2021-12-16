@@ -27,6 +27,7 @@ type Event = AddLeaf | Move;
 export class OrderTree {
   private children: Map<Clock | null, Clock[]> = new Map<Clock, Clock[]>();
   private value: Map<Clock | null, string> = new Map<Clock, string>();
+  private right = new Map<Clock | null, { right: number }>();
   private clock: Clock;
   constructor(name: string) {
     this.clock = new Clock(name);
@@ -65,20 +66,24 @@ export class OrderTree {
           )!;
           startIndex = startIndex + 1;
         }
+        const counts = this.right.get(event.leftId) ?? { right: 0 };
+        counts.right++;
+        this.right.set(event.leftId, counts);
+        let si = startIndex;
         while (true) {
           const compareTo = children[startIndex];
           if (!compareTo) {
             break;
           }
           const ord = compareTo.compare(event.id);
-          if (ord === Ordering.Greater) {
+          if (ord === Ordering.Less) {
             startIndex++;
             continue;
           } else {
             break;
           }
         }
-        children?.splice(startIndex, 0, event.id);
+        children?.splice(2 * si + counts.right - startIndex - 1, 0, event.id);
         this.value.set(event.id, event.value);
         this.children.set(event.parentId, children);
       }
