@@ -151,6 +151,12 @@ export class OrderTree {
   public applyEvent(event: Event): void {
     this.clock = this.clock.merge(event.id);
     this.logs.splice(searchIndex(this.logs, event), 0, event);
+    const res = buildLogs(this.logs);
+    this.value = res.value;
+    this.currentId = res.currentId;
+    this.value = res.value;
+    this.logMap = res.logMap;
+    this.children = res.children;
   }
 
   private getChildrenNodes(parentId: null | Clock): any {
@@ -168,4 +174,88 @@ export class OrderTree {
       children: this.getChildrenNodes(null),
     };
   }
+}
+
+function getRealId(
+  logMap: Map<Clock, Event>,
+  currentId: Map<Clock, Clock>,
+  id: Clock
+) {
+  const current = logMap.get(id);
+  if (current?.type === Action.Move) {
+    if (
+      currentId.get(current.from) &&
+      current.id === currentId.get(current.from)
+    ) {
+      return current.id;
+    }
+    return null;
+  }
+  if (currentId.has(id)) {
+    return currentId.get(id);
+  }
+  return id;
+}
+
+function buildLogs(logs: Event[]) {
+  const children: Map<Clock | null, Clock[]> = new Map();
+  const value: Map<Clock | null, string> = new Map();
+  const currentId: Map<Clock, Clock> = new Map();
+  const parent: Map<Clock | null, Clock | null> = new Map();
+  const logMap: Map<Clock, Event> = new Map();
+  logs.forEach((e) => {
+    logMap.set(e.id, e);
+  });
+  for (const log of logs) {
+    switch (log.type) {
+      case Action.AddLeaf: {
+        value.set(log.id, log.value);
+        const c = children.get(log.parentId) ?? [];
+        const offset = c.findIndex((o) => o === log.leftId) + 1;
+        c.splice(offset, 0, log.id);
+        children.set(log.parentId, c);
+        parent.set(log.id, log.parentId);
+        break;
+      }
+      case Action.Move: {
+        const oldParent = parent.get(log.from);
+        const newParent = log.targetParent;
+        const changeParent = oldParent === newParent;
+        if (changeParent) {
+          const parentLog: Clock[] = [];
+          let p = getRealId(logMap, currentId, log.targetParent!);
+          while (p) {
+            parentLog.push(p);
+            p = getRealId(logMap, currentId, p);
+          }
+          if (parentLog.every((o) => o !== log.from)) {
+            parent.set(log.id, log.targetParent);
+            currentId.set(log.from, log.id);
+            const c = children.get(log.targetParent) ?? [];
+            const offset = c.findIndex((o) => o === log.targetLeftId) + 1;
+            c.splice(offset, 0, log.id);
+            children.set(log.targetLeftId, c);
+          } else {
+            //ignore
+          }
+        } else {
+          parent.set(log.id, log.targetParent);
+          currentId.set(log.from, log.id);
+          const c = children.get(log.targetParent) ?? [];
+          const offset = c.findIndex((o) => o === log.targetLeftId) + 1;
+          c.splice(offset, 0, log.id);
+          children.set(log.targetLeftId, c);
+        }
+        break;
+      }
+    }
+  }
+
+  return {
+    children,
+    value,
+    currentId,
+    logMap,
+    parent,
+  };
 }
