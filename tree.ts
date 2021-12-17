@@ -114,14 +114,22 @@ export class OrderTree {
   }
 
   move(
-    from: { parents: number[]; offset: number },
-    to: { parents: number[]; offset: number | null }
+    parentsFrom: number[],
+    offsetFrom: number,
+    parentsTo: number[],
+    offsetTo: number | null
   ): Move {
-    const target = this.getByPath(to);
+    const target = this.getByPath({
+      parents: parentsTo,
+      offset: offsetTo,
+    });
 
     const action: Move = {
       type: Action.Move,
-      from: this.getByPath(from).id as Clock,
+      from: this.getByPath({
+        parents: parentsFrom,
+        offset: offsetFrom,
+      }).id as Clock,
       targetParent: target.parentId,
       targetLeftId: target.id,
       id: this.clock.tick(),
