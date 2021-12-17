@@ -24,70 +24,133 @@ interface Move {
 
 type Event = AddLeaf | Move;
 
+function searchIndex(events: Event[], target: Event) {
+  if (events.length === 0) {
+    return 0;
+  }
+  let left = 0;
+  let right = events.length - 1;
+  if (target.id.compare(events[right].id) === Ordering.Greater) {
+    return right + 1;
+  }
+  while (left < right) {
+    let index = parseInt(((left + right) >>> 1) as any); //todo fix me
+    if (events[index].id.compare(target.id) === Ordering.Less) {
+      left = index + 1;
+    } else {
+      right = index;
+    }
+  }
+  return left;
+}
+
 export class OrderTree {
-  private children: Map<Clock | null, Clock[]> = new Map<Clock, Clock[]>();
-  private value: Map<Clock | null, string> = new Map<Clock, string>();
-  private right = new Map<Clock | null, { right: number }>();
+  //记录子节点
+  private children: Map<Clock | null, Clock[]>;
+  //记录当前的 value
+  private value: Map<Clock | null, string>;
+  //记录节点当前所在的位置
+  private currentId: Map<Clock, Clock>;
+
+  /**
+   * local logic clock
+   */
   private clock: Clock;
+
+  private logs: Event[];
+  private logMap: Map<Clock, Event>;
+
   constructor(name: string) {
     this.clock = new Clock(name);
+    this.children = new Map<Clock, Clock[]>();
+    this.value = new Map();
+    this.currentId = new Map();
+    this.logs = [];
+    this.logMap = new Map();
   }
 
-  addLeaf(paths: number[], value: string): Event {
-    let parentId: Clock | null = null;
-    let leftId = null;
-    for (const offset of paths.slice(0, -1)) {
-      const brother: Clock[] = this.children.get(parentId) ?? []; //todo 其实不应该为空;
-      parentId = brother[offset] as Clock;
-    }
-    const brother = this.children.get(parentId) ?? [];
-    leftId = brother[paths[paths.length - 1]] ?? null;
+  /**
+   *
+   * @param parents 先根据 parents 找到子节点的数组
+   * @param offset 需要添加到第 offset 的右边，如果是 null、就放到头部
+   * @param value 叶子结点的数值
+   * @returns 事件序列
+   */
+  addLeaf(parents: number[], offset: number | null, value: string): Event {
+    const target = this.getByPath({ parents, offset });
     const action: AddLeaf = {
       type: Action.AddLeaf,
       id: this.clock.tick(),
-      parentId,
-      leftId,
+      parentId: target.parentId,
+      leftId: target.id,
       value,
     };
     this.applyEvent(action);
     return action;
   }
 
-  move(from: number[], to: number[]): void {}
+  private getByOffset(clocks: Clock[], offset: number) {
+    return clocks.map((o) => this.getRealId(o)).filter((o) => !!o)[offset];
+  }
+
+  /**
+   *
+   * @param id 当前的 id
+   * @returns 原始的 id
+   */
+  private getRealId(id: Clock): Clock | null {
+    //如果在 currentId，说明当前节点已经被移走了
+    if (this.currentId.has(id)) {
+      return null;
+    }
+    const current = this.logMap.get(id);
+    if (current?.type === Action.Move) {
+      if (this.currentId.get(current.from) === current.id) {
+        return current.from;
+      }
+      return null;
+    }
+    return id;
+  }
+
+  move(
+    from: { parents: number[]; offset: number },
+    to: { parents: number[]; offset: number | null }
+  ): Move {
+    const target = this.getByPath(to);
+
+    const action: Move = {
+      type: Action.Move,
+      from: this.getByPath(from).id as Clock,
+      targetParent: target.parentId,
+      targetLeftId: target.id,
+      id: this.clock.tick(),
+    };
+    this.applyEvent(action);
+    return action;
+  }
+
+  private getByPath(path: { parents: number[]; offset: number | null }): {
+    parentId: Clock | null;
+    id: Clock | null;
+  } {
+    let parentId: Clock | null = null;
+    for (const offset of path.parents) {
+      const brother: Clock[] = this.children.get(parentId) as Clock[];
+      parentId = this.getByOffset(brother, offset);
+    }
+    if (path.offset === null) {
+      return { parentId, id: null };
+    }
+    return {
+      parentId,
+      id: this.getByOffset(this.children.get(parentId) ?? [], path.offset),
+    };
+  }
 
   public applyEvent(event: Event): void {
-    switch (event.type) {
-      case Action.AddLeaf: {
-        const children = this.children.get(event.parentId) ?? [];
-        let startIndex = 0;
-        if (event.leftId !== null) {
-          startIndex = children?.findIndex(
-            (o) => o.toString() === event.leftId!.toString()
-          )!;
-          startIndex = startIndex + 1;
-        }
-        const counts = this.right.get(event.leftId) ?? { right: 0 };
-        counts.right++;
-        this.right.set(event.leftId, counts);
-        let si = startIndex;
-        while (true) {
-          const compareTo = children[startIndex];
-          if (!compareTo) {
-            break;
-          }
-          const ord = compareTo.compare(event.id);
-          if (ord === Ordering.Less) {
-            startIndex++;
-            continue;
-          } else {
-            break;
-          }
-        }
-        children?.splice(2 * si + counts.right - startIndex - 1, 0, event.id);
-        this.value.set(event.id, event.value);
-        this.children.set(event.parentId, children);
-      }
-    }
+    this.clock = this.clock.merge(event.id);
+    this.logs.splice(searchIndex(this.logs, event), 0, event);
   }
 
   private getChildrenNodes(parentId: null | Clock): any {
@@ -106,25 +169,3 @@ export class OrderTree {
     };
   }
 }
-
-// const tree1 = new OrderTree("root-a");
-// const tree2 = new OrderTree("root-b");
-
-// const oa1 = tree1.addLeaf([0], "a");
-// const oa2 = tree1.addLeaf([0, 0], "a-a");
-// const oa3 = tree1.addLeaf([0, 0], "a-b");
-
-// const ob1 = tree2.addLeaf([0], "b");
-
-// tree1.applyEvent(ob1);
-
-// tree2.applyEvent(oa1);
-// tree2.applyEvent(oa2);
-// tree2.applyEvent(oa3);
-
-// const ob2 = tree2.addLeaf([0], "c");
-// tree1.applyEvent(ob2);
-
-// console.log(treeToString(tree1.buildTree()));
-// console.log();
-// console.log(treeToString(tree2.buildTree()));
