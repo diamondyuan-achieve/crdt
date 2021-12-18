@@ -3,7 +3,7 @@ import { OrderTree } from "./tree";
 
 function compareTree(a: OrderTree, b: OrderTree) {
   const aLogs = a.logs.map((p) => p.id.toString());
-  const bLogs = a.logs.map((p) => p.id.toString());
+  const bLogs = b.logs.map((p) => p.id.toString());
 
   const equal = aLogs.toString() === bLogs.toString();
   return equal;
@@ -31,9 +31,11 @@ function createRandomTree(id: string, opCount: number) {
 
 it("1", () => {
   for (let i = 0; i < 1000; i++) {
-    const tree1 = createRandomTree("root", 10);
-    const tree2 = createRandomTree("root-2", 10);
-    const equal = compareTree(tree1.tree, tree2.tree);
+    const { tree: tree1, logs: logs1 } = createRandomTree("root", 10);
+    const { tree: tree2, logs: logs2 } = createRandomTree("root-2", 10);
+    tree1.applyEvents(logs2);
+    tree2.applyEvents(logs1);
+    const equal = compareTree(tree2, tree1);
     if (!equal) {
       throw new Error("");
     }

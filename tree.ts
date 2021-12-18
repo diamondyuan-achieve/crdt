@@ -1,4 +1,4 @@
-import { Tree, treeToString } from "./debug";
+import { Tree } from "./debug";
 import { Clock, Ordering } from "./clock";
 
 enum Action {
@@ -256,4 +256,24 @@ function buildLogs(logs: Event[]) {
     logMap,
     parent,
   };
+}
+
+class CRDTDoc {
+  constructor(name: string) {}
+}
+
+interface OP {
+  id: Clock;
+}
+class CRDT {
+  constructor(private clock: Clock) {}
+  createOp() {
+    const op = {
+      id: this.clock.tick(),
+    };
+  }
+
+  private applyOp(op: OP) {
+    this.clock = this.clock.merge(op.id);
+  }
 }
