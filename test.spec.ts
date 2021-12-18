@@ -1,3 +1,4 @@
+import { treeToString } from "./debug";
 import { OrderTree } from "./tree";
 
 function compareTree(a: OrderTree, b: OrderTree) {
@@ -37,4 +38,16 @@ it("1", () => {
       throw new Error("");
     }
   }
+});
+
+it("move", () => {
+  const { tree } = createRandomTree("root", 3);
+
+  const tree2 = tree.clone("root-b");
+  const op1 = tree2.move([], 0, [1], null);
+  const op2 = tree.move([], 1, [0], null);
+
+  tree.applyEvent(op1);
+  tree2.applyEvent(op2);
+  expect(compareTree(tree, tree2)).toBeTruthy();
 });

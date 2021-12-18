@@ -89,8 +89,10 @@ export class OrderTree {
     return action;
   }
 
-  private getByOffset(clocks: Clock[], offset: number) {
-    return clocks.map((o) => this.getRealId(o)).filter((o) => !!o)[offset];
+  private getChildren(parentId: Clock | null): Clock[] {
+    return ((this.children.get(parentId) as Clock[]) ?? [])
+      .map((o) => this.getRealId(o))
+      .filter((o) => !!o) as Clock[];
   }
 
   /**
@@ -143,15 +145,14 @@ export class OrderTree {
   } {
     let parentId: Clock | null = null;
     for (const offset of path.parents) {
-      const brother: Clock[] = this.children.get(parentId) as Clock[];
-      parentId = this.getByOffset(brother, offset);
+      parentId = this.getChildren(parentId)[offset];
     }
     if (path.offset === null) {
       return { parentId, id: null };
     }
     return {
       parentId,
-      id: this.getByOffset(this.children.get(parentId) ?? [], path.offset),
+      id: this.getChildren(parentId)[path.offset],
     };
   }
 
@@ -196,6 +197,12 @@ export class OrderTree {
       children: this.getChildrenNodes(null),
     };
   }
+
+  public clone(name: string) {
+    const newTree = new OrderTree(name);
+    newTree.applyEvents(this.logs);
+    return newTree;
+  }
 }
 
 function buildLogs(logs: Event[]) {
@@ -238,7 +245,6 @@ function buildLogs(logs: Event[]) {
           c.splice(offset, 0, log.id);
           children.set(log.targetParent, c);
         }
-        break;
       }
     }
   }
