@@ -184,25 +184,8 @@ export class OrderTree {
   }
 }
 
-function getRealId(
-  logMap: Map<Clock, Event>,
-  currentId: Map<Clock, Clock>,
-  id: Clock
-) {
-  const current = logMap.get(id);
-  if (current?.type === Action.Move) {
-    if (
-      currentId.get(current.from) &&
-      current.id === currentId.get(current.from)
-    ) {
-      return current.id;
-    }
-    return null;
-  }
-  if (currentId.has(id)) {
-    return currentId.get(id);
-  }
-  return id;
+function getRealId(currentId: Map<Clock, Clock>, id: Clock) {
+  return currentId.get(id);
 }
 
 function buildLogs(logs: Event[]) {
@@ -231,10 +214,10 @@ function buildLogs(logs: Event[]) {
         const changeParent = oldParent === newParent;
         if (changeParent) {
           const parentLog: Clock[] = [];
-          let p = getRealId(logMap, currentId, log.targetParent!);
+          let p = currentId.get(log.targetParent!) ?? log.targetParent!;
           while (p) {
             parentLog.push(p);
-            p = getRealId(logMap, currentId, p);
+            p = currentId.get(p) ?? p;
           }
           if (parentLog.every((o) => o !== log.from)) {
             parent.set(log.id, log.targetParent);
@@ -242,7 +225,7 @@ function buildLogs(logs: Event[]) {
             const c = children.get(log.targetParent) ?? [];
             const offset = c.findIndex((o) => o === log.targetLeftId) + 1;
             c.splice(offset, 0, log.id);
-            children.set(log.targetLeftId, c);
+            children.set(log.targetParent, c);
           } else {
             //ignore
           }
@@ -252,7 +235,7 @@ function buildLogs(logs: Event[]) {
           const c = children.get(log.targetParent) ?? [];
           const offset = c.findIndex((o) => o === log.targetLeftId) + 1;
           c.splice(offset, 0, log.id);
-          children.set(log.targetLeftId, c);
+          children.set(log.targetParent, c);
         }
         break;
       }
