@@ -57,7 +57,7 @@ export class OrderTree {
    */
   private clock: Clock;
 
-  private logs: Event[];
+  public logs: Event[];
   private logMap: Map<Clock, Event>;
 
   constructor(name: string) {
@@ -123,7 +123,6 @@ export class OrderTree {
       parents: parentsTo,
       offset: offsetTo,
     });
-
     const action: Move = {
       type: Action.Move,
       from: this.getByPath({
@@ -157,8 +156,23 @@ export class OrderTree {
   }
 
   public applyEvent(event: Event): void {
+    this.applyLog(event);
+    this.rebuild();
+  }
+
+  public applyEvents(events: Event[]): void {
+    for (const iterator of events) {
+      this.applyLog(iterator);
+    }
+    this.rebuild();
+  }
+
+  private applyLog(event: Event) {
     this.clock = this.clock.merge(event.id);
     this.logs.splice(searchIndex(this.logs, event), 0, event);
+  }
+
+  private rebuild() {
     const res = buildLogs(this.logs);
     this.value = res.value;
     this.currentId = res.currentId;
@@ -182,10 +196,6 @@ export class OrderTree {
       children: this.getChildrenNodes(null),
     };
   }
-}
-
-function getRealId(currentId: Map<Clock, Clock>, id: Clock) {
-  return currentId.get(id);
 }
 
 function buildLogs(logs: Event[]) {
@@ -212,24 +222,15 @@ function buildLogs(logs: Event[]) {
         const oldParent = parent.get(log.from);
         const newParent = log.targetParent;
         const changeParent = oldParent === newParent;
+        const ancestors: Clock[] = [];
         if (changeParent) {
-          const parentLog: Clock[] = [];
           let p = currentId.get(log.targetParent!) ?? log.targetParent!;
           while (p) {
-            parentLog.push(p);
-            p = currentId.get(p) ?? p;
+            ancestors.push(p);
+            p = parent.get(currentId.get(p) ?? p)!;
           }
-          if (parentLog.every((o) => o !== log.from)) {
-            parent.set(log.id, log.targetParent);
-            currentId.set(log.from, log.id);
-            const c = children.get(log.targetParent) ?? [];
-            const offset = c.findIndex((o) => o === log.targetLeftId) + 1;
-            c.splice(offset, 0, log.id);
-            children.set(log.targetParent, c);
-          } else {
-            //ignore
-          }
-        } else {
+        }
+        if (ancestors.every((o) => o !== log.from)) {
           parent.set(log.id, log.targetParent);
           currentId.set(log.from, log.id);
           const c = children.get(log.targetParent) ?? [];
